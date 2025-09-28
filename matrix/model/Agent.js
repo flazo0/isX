@@ -20,7 +20,7 @@ const AgentSchema = new mongoose.Schema({
   },
   architecture: {
     type: String,
-    enum: ["x86", "x64", "arm", "unknown"],
+    enum: ["x86", "x64", "arm", "AMD64", "unknown"],
     default: "unknown"
   },
   cpu: {
@@ -58,11 +58,13 @@ const AgentSchema = new mongoose.Schema({
   },
   commandQueue: [
     {
+      commandId: { type: mongoose.Schema.Types.ObjectId, auto: true },
       command: { type: String, required: true },
       payload: { type: Object, default: {} },
       createdAt: { type: Date, default: Date.now },
       executed: { type: Boolean, default: false },
-      executedAt: { type: Date }
+      executedAt: { type: Date },
+      output: { type: String, default: "" }
     }
   ],
   logs: [

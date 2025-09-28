@@ -236,7 +236,6 @@ router.get("/command/:pc", async (req, res) => {
                 message: [`Agent "${pc}" not found.`]
             });
 
-
         // Pega o último comando não executado
         const pendingCommand = agent.commandQueue.find(cmd => !cmd.executed);
 
@@ -364,10 +363,10 @@ router.get("/last-code/:pc", async (req, res) => {
                 message: [`Agent "${pc}" not found.`]
             });
 
-        res.status(200).json({ 
+        res.status(200).json({
             errors: false,
             message: ["success"],
-            code: agent.lastCode 
+            code: agent.lastCode
         });
     } catch (error) {
         console.error("Erro ao obter último código do Agent:", error);
@@ -375,6 +374,25 @@ router.get("/last-code/:pc", async (req, res) => {
             message: ["Erro interno ao obter último código do Agent", error.message],
             errors: true
         });
+    }
+});
+
+router.post("/command-executed/:pc", async (req, res) => {
+    const { pc } = req.params;
+
+    try {
+        const agent = await Agent.findOne({ hostname: pc });
+        if (!agent) return res.sendStatus(404);
+
+        // Procura o comando pelo código e marca como executado
+        agent.commandQueue.forEach(cmd => {
+            cmd.executed = true;
+        });
+
+        await agent.save();
+        res.sendStatus(200);
+    } catch (err) {
+        res.sendStatus(500);
     }
 });
 
