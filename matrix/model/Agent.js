@@ -41,7 +41,7 @@ const AgentSchema = new mongoose.Schema({
     default: "offline"
   },
   returned: {
-    type: Boolean,
+    type: String,
     default: false
   },
   lastActivity: {

@@ -1,16 +1,16 @@
 console.clear();
-require('dotenv').config();
+require("dotenv").config();
 
-const express = require('express');
-const session = require('express-session');
-const colors = require('colors');
-const helmet = require('helmet');
-// const rateLimit = require('express-rate-limit');
-const mongoSanitize = require('express-mongo-sanitize');
-const xss = require('xss-clean');
-const cors = require('cors');
-const morgan = require('morgan');
-const connectDB = require('./config/db');
+const express = require("express");
+const session = require("express-session");
+const colors = require("colors");
+const helmet = require("helmet");
+// const rateLimit = require("express-rate-limit");
+const mongoSanitize = require("express-mongo-sanitize");
+const xss = require("xss-clean");
+const cors = require("cors");
+const morgan = require("morgan");
+const connectDB = require("./config/db");
 
 // ----------- CONECTANDO AO BANCO DE DADOS -----------
 connectDB();
@@ -39,20 +39,20 @@ app.use(xss());
 
 // CORS
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGIN || '*',
-  methods: ['GET','POST','PUT','DELETE'],
+  origin: process.env.ALLOWED_ORIGIN || "*",
+  methods: ["GET","POST","PUT","DELETE"],
   credentials: true
 }));
 
 // Logger de requests
-app.use(morgan('dev'));
+app.use(morgan("dev"));
 
 // ----------- BODY PARSERS E SESSÃO -----------
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // ----------- ROTAS -----------
-app.use('/api/v1', require("./routes/v1"));
+app.use("/api/v1", require("./routes/v1"));
 
 // ----------- TRATAMENTO DE ERROS -----------
 
