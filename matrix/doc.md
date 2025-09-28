@@ -1,8 +1,8 @@
-# API Documentation v1
+# API Documentation v2
 
 ## Overview
 
-Esta API permite o gerenciamento de dispositivos, incluindo o registro, atualização de status, verificação de conexão e controle de comandos. Abaixo estão as rotas disponíveis, incluindo detalhes sobre como usá-las.
+Esta API permite o gerenciamento de **Agents**, incluindo registro, atualização de status, verificação de conexão, envio de comandos e monitoramento de atividade.
 
 ---
 
@@ -15,32 +15,31 @@ http://<your-domain>/api/v1
 ---
 
 ## Endpoints
-Beleza! Vou reescrever a documentação **corrigindo nomes, tipos e respostas**, seguindo o padrão que você está usando, e ajustando para o **Agent** que criamos com MongoDB/Mongoose:
 
----
-
-### 1. Register o Agent
+### 1. Register Agent
 
 * **POST** `/create-agent`
+
 * **Description**: Registra um novo Agent no sistema, armazenando informações da máquina e do usuário.
+
 * **Request Body**:
 
 ```json
 {
-  "ipAddress": "string",          // Endereço IP da máquina
-  "hostname": "string",           // Nome do computador
-  "username": "string",           // Usuário logado na máquina
-  "operatingSystem": "string",    // Sistema operacional (opcional, padrão: "unknown")
-  "architecture": "string",       // Arquitetura da máquina (opcional, valores possíveis: "x86", "x64", "arm")
-  "cpu": {                        // Informações da CPU (opcional)
+  "ipAddress": "string",
+  "hostname": "string",
+  "username": "string",
+  "operatingSystem": "string",
+  "architecture": "string",
+  "cpu": {
     "model": "string",
     "cores": 0
   },
-  "memory": {                     // Informações da memória RAM (opcional)
+  "memory": {
     "total": 0,
     "free": 0
   },
-  "disk": {                       // Informações do disco (opcional)
+  "disk": {
     "total": 0,
     "free": 0
   }
@@ -49,211 +48,322 @@ Beleza! Vou reescrever a documentação **corrigindo nomes, tipos e respostas**,
 
 * **Responses**:
 
-  * **201 Created**: Agent registrado com sucesso.
+  * **201 Created**
 
   ```json
   {
-    "message": "Agent registrado com sucesso.",
-    "agentId": "string" // ID do Agent no MongoDB
+    "errors": false,
+    "message": ["Agent registrado com sucesso."],
+    "agentId": "string"
   }
   ```
 
-  * **400 Bad Request**: Campos obrigatórios faltando.
+  * **400 Bad Request**
 
   ```json
   {
     "errors": true,
-    "message": "ipAddress, hostname and username are required."
+    "message": ["ipAddress, hostname and username are required."]
   }
   ```
 
-  * **500 Internal Server Error**: Falha ao criar Agent.
+  * **500 Internal Server Error**
 
   ```json
   {
-    "message": "Falha ao registrar Agent",
-    "error": "string"
+    "errors": true,
+    "message": ["Falha ao registrar Agent", "string"]
   }
   ```
 
 ---
 
-### 2. Update Device Returned Status
+### 2. Check if Agent Exists
 
-- **POST** `/post/returned/:computer_`
-- **Description**: Atualiza o status de devolução do dispositivo.
-- **Parameters**:
-    - `computer_`: ID do computador (URL parameter).
-- **Request Body**:
-    ```json
-    {
-        "returned_": "boolean"
-    }
-    ```
-- **Responses**:
-    - **200 OK**: Status updated successfully.
-    - **404 Not Found**: Device not found.
-    - **500 Internal Server Error**: An error occurred.
+* **GET** `/check-agent/:pc`
 
----
+* **Description**: Verifica se um Agent está registrado.
 
-### 3. Get Device Returned Status
+* **Responses**:
 
-- **GET** `/get/returned/:computer_`
-- **Description**: Obtém o status de devolução do dispositivo.
-- **Parameters**:
-    - `computer_`: ID do computador (URL parameter).
-- **Responses**:
-    - **200 OK**: Returns the returned status.
-        ```json
-        {
-            "returned": "boolean"
-        }
-        ```
-    - **404 Not Found**: Device not found.
-    - **500 Internal Server Error**: An error occurred.
+  * **200 OK**
+
+  ```json
+  {
+    "errors": false,
+    "exists": true,
+    "agentId": "string",
+    "hostname": "string",
+    "status": "online/offline",
+    "message": ["success"]
+  }
+  ```
+
+  * **404 Not Found**
+
+  ```json
+  {
+    "errors": true,
+    "exists": false,
+    "message": ["Agent with hostname \"pc\" not found."]
+  }
+  ```
 
 ---
 
-### 4. Update Device Activity Timestamp
+### 3. Check Agent Status
 
-- **POST** `/update/activity/:computer_`
-- **Description**: Atualiza a data e hora da última atividade do dispositivo.
-- **Parameters**:
-    - `computer_`: ID do computador (URL parameter).
-- **Responses**:
-    - **200 OK**: Activity timestamp updated successfully.
-    - **404 Not Found**: Device not found.
-    - **500 Internal Server Error**: An error occurred.
+* **GET** `/check-status/:pc`
 
----
+* **Description**: Retorna o status atual do Agent (online/offline) e timestamps de atividade.
 
-### 5. Check Device Status
+* **Responses**:
 
-- **GET** `/check/status/:computer_`
-- **Description**: Verifica o status atual do dispositivo (online/offline).
-- **Parameters**:
-    - `computer_`: ID do computador (URL parameter).
-- **Responses**:
-    - **200 OK**: Returns the status and timestamps.
-        ```json
-        {
-            "status": "online/offline",
-            "currentTime": "ISO Date",
-            "lastUpdate_": "ISO Date"
-        }
-        ```
-    - **404 Not Found**: Device not found.
-    - **500 Internal Server Error**: An error occurred.
+  * **200 OK**
+
+  ```json
+  {
+    "errors": false,
+    "status": "online/offline",
+    "currentTime": "ISO Date",
+    "lastUpdate": "ISO Date",
+    "message": ["success"]
+  }
+  ```
+
+  * **404 Not Found**
+
+  ```json
+  {
+    "errors": true,
+    "message": ["Agent with hostname \"pc\" not found."]
+  }
+  ```
 
 ---
 
-### 6. Check If Device Exists
+### 4. Get All Connections
 
-- **GET** `/check/device/:computer_`
-- **Description**: Verifica se um dispositivo está registrado.
-- **Parameters**:
-    - `computer_`: ID do computador (URL parameter).
-- **Responses**:
-    - **200 OK**: Device exists.
-    - **404 Not Found**: Device not found.
-    - **500 Internal Server Error**: An error occurred.
+* **GET** `/connections`
 
----
+* **Description**: Retorna todos os Agents registrados.
 
-### 7. Get All Connections
+* **Responses**:
 
-- **GET** `/connections`
-- **Description**: Obtém a lista de todos os dispositivos registrados.
-- **Responses**:
-    - **200 OK**: Returns an array of devices.
-        ```json
-        [
-            {
-                "computer_": "string",
-                "status_": "boolean",
-                "lastUpdate_": "ISO Date",
-                ...
-            }
-        ]
-        ```
-    - **500 Internal Server Error**: An error occurred.
+  * **200 OK**
+
+  ```json
+  {
+    "errors": false,
+    "message": ["success"],
+    "agents": [
+      {
+        "_id": "string",
+        "hostname": "string",
+        "status": "online/offline",
+        "lastActivity": "ISO Date",
+        "returned": "string",
+        "commandQueue": []
+      }
+    ]
+  }
+  ```
 
 ---
 
-### 8. Get Latest Code of Device
+### 5. Send Command to Agent
 
-- **GET** `/get/lest/code/:computer_`
-- **Description**: Obtém o último código associado a um dispositivo.
-- **Parameters**:
-    - `computer_`: ID do computador (URL parameter).
-- **Responses**:
-    - **200 OK**: Returns the last code.
-        ```json
-        {
-            "code": "number"
-        }
-        ```
-    - **404 Not Found**: Device not found.
-    - **500 Internal Server Error**: An error occurred.
+* **POST** `/:pc`
 
----
+* **Description**: Envia um comando para o Agent.
 
-### 9. Get Device Command
+* **Request Body**:
 
-- **GET** `/get/command/:computer_`
-- **Description**: Obtém o comando associado a um dispositivo.
-- **Parameters**:
-    - `computer_`: ID do computador (URL parameter).
-- **Responses**:
-    - **200 OK**: Returns the command object.
-        ```json
-        {
-            "command_": "string",
-            "code_": "number",
-            ...
-        }
-        ```
-    - **404 Not Found**: Device not found.
-    - **500 Internal Server Error**: An error occurred.
+```json
+{
+  "command": "string"
+}
+```
+
+* **Responses**:
+
+  * **200 OK**
+
+  ```json
+  {
+    "errors": false,
+    "message": ["Command sent successfully."]
+  }
+  ```
+
+  * **404 Not Found**
+
+  ```json
+  {
+    "errors": true,
+    "message": ["Agent with hostname \"pc\" not found."]
+  }
+  ```
 
 ---
 
-### 10. Connect to Device
+### 6. Connect to Agent
 
-- **POST** `/connect/:computer_`
-- **Description**: Conecta a um dispositivo e obtém suas informações.
-- **Parameters**:
-    - `computer_`: ID do computador (URL parameter).
-- **Responses**:
-    - **200 OK**: Returns device information.
-    - **404 Not Found**: Device not found.
-    - **500 Internal Server Error**: An error occurred.
+* **POST** `/connect/:pc`
 
----
+* **Description**: Retorna os dados completos de um Agent.
 
-### 11. Send Command to Device
+* **Responses**:
 
-- **POST** `/:computer_`
-- **Description**: Envia um comando para o dispositivo.
-- **Parameters**:
-    - `computer_`: ID do computador (URL parameter).
-- **Request Body**:
-    ```json
-    {
-        "command_": "string"
-    }
-    ```
-- **Responses**:
-    - **200 OK**: Command sent successfully.
-    - **404 Not Found**: Device not found.
-    - **500 Internal Server Error**: An error occurred.
+  * **200 OK**
+
+  ```json
+  {
+    "errors": false,
+    "message": ["success"],
+    "agent": { ... }
+  }
+  ```
+
+  * **404 Not Found**
+
+  ```json
+  {
+    "errors": true,
+    "message": ["Agent \"pc\" not found."]
+  }
+  ```
 
 ---
 
-## Error Handling
+### 7. Get Agent Command
 
-A API retornará os seguintes códigos de status HTTP para erros:
+* **GET** `/command/:pc`
 
-- **404 Not Found**: Quando o recurso não for encontrado.
-- **500 Internal Server Error**: Quando ocorrer um erro inesperado no servidor.
+* **Description**: Retorna o próximo comando não executado do Agent.
+
+* **Responses**:
+
+  * **200 OK**
+
+  ```json
+  {
+    "errors": false,
+    "message": ["success"],
+    "command": "string",
+    "payload": {},
+    "createdAt": "ISO Date"
+  }
+  ```
+
+  * **404 Not Found**
+
+  ```json
+  {
+    "errors": true,
+    "message": ["Agent \"pc\" not found."]
+  }
+  ```
+
+  * **200 OK (sem comandos)**
+
+  ```json
+  {
+    "errors": true,
+    "message": ["No pending commands."]
+  }
+  ```
+
+---
+
+### 8. Update Returned Status
+
+* **POST** `/returned/:pc`
+
+* **Description**: Atualiza a string enviada pelo Agent (`returned`).
+
+* **Request Body**:
+
+```json
+{
+  "returned": "string"
+}
+```
+
+* **Responses**:
+
+  * **200 OK**
+
+  ```json
+  {
+    "errors": false,
+    "message": ["Return updated successfully."]
+  }
+  ```
+
+---
+
+### 9. Get Returned Status
+
+* **GET** `/returned/:pc`
+
+* **Description**: Retorna a última string de retorno enviada pelo Agent.
+
+* **Responses**:
+
+  * **200 OK**
+
+  ```json
+  {
+    "errors": false,
+    "message": ["success"],
+    "returned": "string"
+  }
+  ```
+
+---
+
+### 10. Update Agent Activity
+
+* **POST** `/activity/:pc`
+
+* **Description**: Atualiza o timestamp da última atividade do Agent.
+
+* **Responses**:
+
+  * **200 OK**
+
+  ```json
+  {
+    "errors": false,
+    "message": ["Last activity updated successfully."]
+  }
+  ```
+
+---
+
+### 11. Get Last Code
+
+* **GET** `/last-code/:pc`
+
+* **Description**: Retorna o último código gerado para o Agent.
+
+* **Responses**:
+
+  * **200 OK**
+
+  ```json
+  {
+    "errors": false,
+    "message": ["success"],
+    "code": 123456789
+  }
+  ```
+
+---
+
+### Error Handling
+
+* **404 Not Found**: Agent não encontrado.
+* **400 Bad Request**: Parâmetro inválido ou campo obrigatório ausente.
+* **500 Internal Server Error**: Erro interno no servidor.
