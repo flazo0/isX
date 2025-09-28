@@ -2,6 +2,15 @@ const router = require("express").Router();
 
 const Agent = require("../model/Agent")
 
+function normalizeArchitecture(arch) {
+    if (!arch) return "unknown";
+    arch = arch.toLowerCase();
+    if (arch.includes("amd64") || arch.includes("x64")) return "x64";
+    if (arch.includes("x86")) return "x86";
+    if (arch.includes("arm")) return "arm";
+    return "unknown";
+}
+
 router.post("/create-agent", async (req, res) => {
     const { ipAddress, hostname, username, operatingSystem, architecture, cpu, memory, disk } = req.body;
 
@@ -18,7 +27,7 @@ router.post("/create-agent", async (req, res) => {
             hostname,
             username,
             operatingSystem: operatingSystem || "unknown",
-            architecture: architecture || "unknown",
+            architecture: normalizeArchitecture(architecture) || "unknown",
             cpu: cpu || { model: "unknown", cores: 0 },
             memory: memory || { total: 0, free: 0 },
             disk: disk || { total: 0, free: 0 },

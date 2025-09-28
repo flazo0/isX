@@ -6,8 +6,6 @@ const session = require("express-session");
 const colors = require("colors");
 const helmet = require("helmet");
 // const rateLimit = require("express-rate-limit");
-const mongoSanitize = require("express-mongo-sanitize");
-const xss = require("xss-clean");
 const cors = require("cors");
 const morgan = require("morgan");
 const connectDB = require("./config/db");
@@ -30,12 +28,6 @@ app.use(helmet());
 //   message: "Too many requests from this IP, please try again later."
 // }); 
 // app.use(limiter);
-
-// Proteção contra NoSQL Injection
-app.use(mongoSanitize());
-
-// Proteção contra XSS
-app.use(xss());
 
 // CORS
 app.use(cors({
