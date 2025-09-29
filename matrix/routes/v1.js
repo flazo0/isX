@@ -133,6 +133,7 @@ router.get("/check-status/:pc", async (req, res) => {
 router.get("/connections", async (req, res) => {
     try {
         const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+        const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
 
         // Deleta Agents que não atualizam há mais de 10 dias
         await Agent.deleteMany({ lastActivity: { $lt: tenDaysAgo } });
@@ -140,10 +141,19 @@ router.get("/connections", async (req, res) => {
         // Busca todos os Agents restantes
         const agents = await Agent.find({});
 
+        // Calcula status online/offline
+        const updatedAgents = agents.map(agent => {
+            const status = agent.lastActivity > oneMinuteAgo ? "Online" : "Offline";
+            return {
+                ...agent.toObject(),
+                status
+            };
+        });
+
         res.status(200).json({
             message: ["success"],
             errors: false,
-            agents
+            agents: updatedAgents
         });
     } catch (error) {
         console.error("Error fetching connections:", error);
