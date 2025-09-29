@@ -1,3 +1,4 @@
+import os
 import requests
 import time
 import socket
@@ -13,6 +14,7 @@ from requests.exceptions import RequestException
 # Configurações do servidor
 SERVER_URL = "http://localhost:4000/api/v1"
 COMMANDS_DIR = "commands"
+DLL_DIR = "dll_commands"
 LOADED_COMMANDS = {}
 LAST_CODE = None
 
@@ -83,6 +85,19 @@ def load_commands():
         except Exception as e:
             print(f"[ERRO] Falha ao carregar comando {module_name}: {e}")
 
+def load_dll_commands():
+    """Carrega funções das DLLs na pasta `dll_commands/`."""
+    dll_path = Path(DLL_DIR)
+    if not dll_path.exists():
+        dll_path.mkdir()
+    for dll_file in dll_path.glob("*.dll"):
+        try:
+            lib = ctypes.CDLL(str(dll_file))
+            LOADED_COMMANDS[dll_file.stem.lower()] = lib
+            print(f"[INFO] DLL carregada: {dll_file.name}")
+        except Exception as e:
+            print(f"[ERRO] Falha ao carregar DLL {dll_file.name}: {e}")
+
 def send_returned(result: str):
     """
     Envia resultado de comando (returned) para o servidor.
@@ -107,10 +122,28 @@ def execute_command(command: str) -> str:
     args = parts[1:]
 
     if cmd in LOADED_COMMANDS:
+        obj = LOADED_COMMANDS[cmd]
+        # Se for módulo Python
+        if hasattr(obj, "run"):
+            try:
+                return obj.run(args)
+            except Exception as e:
+                return f"[ERRO] Falha ao executar {cmd}: {e}"
+
+    # Depois verifica se é uma DLL carregada
+    dll_path = os.path.join("dll_commands", f"{cmd}.dll")
+    if os.path.exists(dll_path):
         try:
-            return LOADED_COMMANDS[cmd].run(args)
+            dll = ctypes.CDLL(dll_path)
+            if hasattr(dll, "run"):
+                # Para funções void, ctypes retorna None, então podemos retornar sucesso
+                result = dll.run()
+                return f"[INFO] DLL {cmd} executada com sucesso."
+            else:
+                return f"[INFO] DLL {cmd} carregada, sem função 'run'."
         except Exception as e:
-            return f"[ERRO] Falha ao executar {cmd}: {e}"
+            return f"[ERRO] Falha ao executar DLL {cmd}: {e}"
+        
     return "[ERRO] Comando não reconhecido."
 
 def check_for_command():
@@ -144,6 +177,7 @@ def main_loop():
     Loop principal do Agent.
     """
     register_agent()
+    load_dll_commands()
     load_commands()
     while True:
         update_activity()
