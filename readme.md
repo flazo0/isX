@@ -13,7 +13,7 @@ O sistema é dividido nos seguintes módulos:
 
 ### 1. Runner
 
-* **Linguagens**: Python, C++
+* **Linguagens**: Python, C
 * **Descrição**:
   Malware que roda no computador do usuário final. Ele:
 
