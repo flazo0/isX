@@ -5,6 +5,12 @@ const express = require("express");
 const session = require("express-session");
 const colors = require("colors");
 const helmet = require("helmet");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const AdmZip = require("adm-zip");
+const crypto = require("crypto");
+const mkdirp = require("mkdirp");
 // const rateLimit = require("express-rate-limit");
 const cors = require("cors");
 const morgan = require("morgan");
@@ -43,8 +49,44 @@ app.use(morgan("dev"));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// ----------- PUBLIC  ----------- 
+app.use(express.static("public"));
+
+// ----------- UPLOADS -----------
+const PUBLIC_DIR = path.join(__dirname, "public");
+const UPDATES_DIR = path.join(PUBLIC_DIR, "updates");
+mkdirp.sync(UPDATES_DIR);
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPDATES_DIR),
+  filename: (req, file, cb) => {
+    const ts = Date.now();
+    cb(null, `${ts}_${file.originalname.replace(/[^\w.\-]/g, "_")}`);
+  },
+});
+const upload = multer({ storage });
+
 // ----------- ROTAS -----------
 app.use("/api/v1", require("./routes/v1"));
+
+app.post("/upload-commands", upload.single("commands_zip"), (req, res) => {
+  if (!req.file) return res.status(400).json({ ok: false, error: "Nenhum arquivo enviado" });
+
+  return res.json({
+    ok: true,
+    message: "Zip enviado com sucesso",
+    zipFile: `/public/updates/${req.file.filename}`
+  });
+});
+
+// Lista todos os zips disponíveis
+app.get("/commands-list", (req, res) => {
+  const files = fs.readdirSync(UPDATES_DIR)
+    .filter(f => f.endsWith(".zip"))
+    .map(f => ({ name: f, url: `/updates/${f}` }));
+  res.json({ ok: true, zips: files });
+});
+
 
 // ----------- TRATAMENTO DE ERROS -----------
 

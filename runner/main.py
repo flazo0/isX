@@ -7,16 +7,54 @@ import getpass
 import ctypes
 import pkgutil
 import importlib
+import shutil
+import zipfile
 from pathlib import Path
 from plyer import notification
 from requests.exceptions import RequestException
 
 # Configurações do servidor
-SERVER_URL = "http://localhost:4000/api/v1"
-COMMANDS_DIR = "commands"
-DLL_DIR = "dll_commands"
+SERVER_URL = "" #http://localhost:4000/api/v1
+COMMANDS_DIR = "" #commands
+DLL_DIR = "" #dll_commands
 LOADED_COMMANDS = {}
 LAST_CODE = None
+
+def update_commands_from_api(zip_url: str, commands_dir: str):
+    """
+    Baixa um zip da API e substitui o conteúdo da pasta de comandos.
+    """
+    try:
+        # Baixa o zip
+        r = requests.get(zip_url)
+        if r.status_code != 200:
+            return f"Falha ao baixar o zip: {r.status_code}"
+
+        zip_path = "commands_update.zip"
+        with open(zip_path, "wb") as f:
+            f.write(r.content)
+
+        # Remove todos os arquivos e pastas dentro de COMMANDS_DIR
+        if os.path.exists(commands_dir):
+            for filename in os.listdir(commands_dir):
+                file_path = os.path.join(commands_dir, filename)
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+        else:
+            os.makedirs(commands_dir, exist_ok=True)
+
+        # Extrai o zip dentro de COMMANDS_DIR
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(commands_dir)
+
+        # Remove o zip temporário
+        os.remove(zip_path)
+
+        return "Comandos atualizados com sucesso!"
+    except Exception as e:
+        return f"Falha ao atualizar comandos: {e}"
 
 def get_system_info():
     """
@@ -121,6 +159,23 @@ def execute_command(command: str) -> str:
     cmd = parts[0].lower()
     args = parts[1:]
 
+    if command.strip() == "":
+        return "Comando vazio."
+    if cmd == "help":
+        return "Comandos disponíveis: " + ", ".join(LOADED_COMMANDS.keys())
+    if cmd == "reload":
+        load_commands()
+        load_dll_commands()
+        return "Comandos recarregados."
+    if cmd == "info":
+        return f"Comandos carregados: {list(LOADED_COMMANDS.keys())}"
+    if cmd == "update":
+        if len(args) != 1:
+            return "Uso: update <zip_url>"
+        zip_url = args[0]
+        result = update_commands_from_api(zip_url, COMMANDS_DIR)
+        return result
+
     if cmd in LOADED_COMMANDS:
         obj = LOADED_COMMANDS[cmd]
         # Se for módulo Python
@@ -128,7 +183,7 @@ def execute_command(command: str) -> str:
             try:
                 return obj.run(args)
             except Exception as e:
-                return f"[ERRO] Falha ao executar {cmd}: {e}"
+                return f"Falha ao executar {cmd}: {e}"
 
     # Depois verifica se é uma DLL carregada
     dll_path = os.path.join("dll_commands", f"{cmd}.dll")
@@ -138,13 +193,12 @@ def execute_command(command: str) -> str:
             if hasattr(dll, "run"):
                 # Para funções void, ctypes retorna None, então podemos retornar sucesso
                 result = dll.run()
-                return f"[INFO] DLL {cmd} executada com sucesso."
+                return f"DLL {cmd} executada com sucesso."
             else:
-                return f"[INFO] DLL {cmd} carregada, sem função 'run'."
+                return f"DLL {cmd} carregada, sem função 'run'."
         except Exception as e:
-            return f"[ERRO] Falha ao executar DLL {cmd}: {e}"
-        
-    return "[ERRO] Comando não reconhecido."
+            return f"Falha ao executar DLL {cmd}: {e}"
+    return "Comando não reconhecido."
 
 def check_for_command():
     global LAST_CODE
